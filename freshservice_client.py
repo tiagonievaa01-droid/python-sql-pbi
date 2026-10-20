@@ -27,17 +27,27 @@ def criar_ticket_enviar_boleto(filepath, dados_cliente, email_config_id=EMAIL_CO
     # Captura os dados básicos cruzando com as colunas minúsculas do CSV
     id_cliente = dados_cliente.get('id cliente', '')
     nome_cliente = dados_cliente.get('nome cliente', '')
-    pedido = dados_cliente.get('pedido', '')
+    pedido_raw = str(dados_cliente.get('pedido', ''))
     
     # ==========================================
-    # CAPTURA AS NOTAS FISCAIS
+    # FORMATA OS PEDIDOS COM HÍFEN
+    # ==========================================
+    # Troca possíveis vírgulas por hífen e garante o espaçamento " - "
+    pedido_com_hifen = pedido_raw.replace(',', '-')
+    pedidos_lista = [p.strip() for p in pedido_com_hifen.split('-') if p.strip()]
+    pedido_exibicao = " - ".join(pedidos_lista)
+    
+    # ==========================================
+    # CAPTURA E FORMATA AS NOTAS FISCAIS
     # ==========================================
     notas = dados_cliente.get('nota fiscal', dados_cliente.get('nf', dados_cliente.get('nota', '')))
     notas_str = str(notas).strip().lower()
     
-    # Ajusta o texto: mantém a frase padrão e adiciona a nota logo a seguir (se existir)
+    # Ajusta o texto: quebra as notas por linha (substitui a vírgula por <br>)
     if notas and notas_str not in ('nan', 'none', ''):
-        texto_notas = f"de acordo com as notas fiscais já faturadas e entregues. Nota: <b>{notas}</b>"
+        notas_lista = [n.strip() for n in str(notas).split(',') if n.strip()]
+        notas_html = "<br>".join(notas_lista) # Adiciona a quebra de linha HTML entre as notas
+        texto_notas = f"de acordo com as notas fiscais já faturadas e entregues. Nota:<br><b>{notas_html}</b>"
     else:
         texto_notas = "de acordo com as notas fiscais já faturadas e entregues."
     # ==========================================
@@ -46,7 +56,7 @@ def criar_ticket_enviar_boleto(filepath, dados_cliente, email_config_id=EMAIL_CO
     
     texto_padrao = f"""
     Prezado cliente, {nome_cliente}<br>
-    Segue anexo os boletos relacionados ao pedido {pedido}, {texto_notas}<br><br>
+    Segue anexo os boletos relacionados ao(s) pedido(s) <b>{pedido_exibicao}</b>, {texto_notas}<br><br>
     Se tiver alguma dúvida, estamos à disposição.<br>
     Entre em contato pelo WhatsApp (11) 95083-8179 ou, se preferir, ligue para 0800 770 8290.<br>
     #SorrisosQueGeramSorrisos<br>
