@@ -1,0 +1,45 @@
+# ==========================================
+# CREDENCIAIS E SEGURANÇA (NUNCA ENVIAR AO GIT)
+# ==========================================
+.env
+.env.*
+*.pem
+*.key
+
+# ==========================================
+# AMBIENTE VIRTUAL E CONFIGURAÇÕES DE IDE
+# ==========================================
+.venv/
+venv/
+env/
+.vscode/
+.idea/
+
+# ==========================================
+# DADOS SENSÍVEIS, BOLETOS E RELATÓRIOS
+# ==========================================
+Dados/
+boletos_sap/
+boletos_processados/
+PDF/
+Saida/
+XML/
+XML./
+INTEGRACAO_PBI/
+
+# Extensões de arquivos de dados, relatórios e temporários
+*.csv
+*.xlsx
+*.xls
+*.pdf
+*.zip
+relatorio_envios*.txt
+*.log
+
+# ==========================================
+# CACHE E TEMPORÁRIOS DO PYTHON
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
