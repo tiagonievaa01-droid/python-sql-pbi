@@ -7,6 +7,7 @@ load_dotenv()
 FS_DOMAIN = os.getenv("FRESHSERVICE_DOMAIN")
 FS_API_KEY = os.getenv("FRESHSERVICE_API_KEY")
 
+# Puxa o ID de forma segura do .env (com fallback para o ID padrão caso o .env não seja lido)
 EMAIL_CONFIG_ID_DEFAULT = os.getenv("EMAIL_CONFIG_ID", 156000288508)
 
 def validar_email(email):
@@ -23,16 +24,29 @@ def criar_ticket_enviar_boleto(filepath, dados_cliente, email_config_id=EMAIL_CO
 
     url = f"https://{FS_DOMAIN}.freshdesk.com/api/v2/tickets/outbound_email"
     
-    # CORREÇÃO AQUI: 'id cliente' em minúsculas
-    id_cliente = dados_cliente.get('id cliente', dados_cliente.get('ID cliente', ''))
-    nome_cliente = dados_cliente.get('nome cliente', dados_cliente.get('nome', ''))
+    # Captura os dados básicos cruzando com as colunas minúsculas do CSV
+    id_cliente = dados_cliente.get('id cliente', '')
+    nome_cliente = dados_cliente.get('nome cliente', '')
     pedido = dados_cliente.get('pedido', '')
+    
+    # ==========================================
+    # CAPTURA AS NOTAS FISCAIS
+    # ==========================================
+    notas = dados_cliente.get('nota fiscal', dados_cliente.get('nf', dados_cliente.get('nota', '')))
+    notas_str = str(notas).strip().lower()
+    
+    # Ajusta o texto: mantém a frase padrão e adiciona a nota logo a seguir (se existir)
+    if notas and notas_str not in ('nan', 'none', ''):
+        texto_notas = f"de acordo com as notas fiscais já faturadas e entregues. Nota: <b>{notas}</b>"
+    else:
+        texto_notas = "de acordo com as notas fiscais já faturadas e entregues."
+    # ==========================================
     
     assunto = f"Envio de Boletos mistos aos clientes - {id_cliente}"
     
     texto_padrao = f"""
     Prezado cliente, {nome_cliente}<br>
-    Segue anexo os boletos relacionados ao pedido {pedido}, de acordo com as notas fiscais já faturadas e entregues.<br><br>
+    Segue anexo os boletos relacionados ao pedido {pedido}, {texto_notas}<br><br>
     Se tiver alguma dúvida, estamos à disposição.<br>
     Entre em contato pelo WhatsApp (11) 95083-8179 ou, se preferir, ligue para 0800 770 8290.<br>
     #SorrisosQueGeramSorrisos<br>
