@@ -1,6 +1,7 @@
 import os
 import glob
 import shutil
+import re
 from datetime import datetime
 from csv_handler import carregar_dados_clientes
 from freshservice_client import criar_ticket_enviar_boleto
@@ -21,6 +22,10 @@ EMAIL_CONFIG_ID = 156000288508
 DIR_ENTRADA = "boletos_sap"
 DIR_PROCESSADOS = "boletos_processados"
 ARQUIVO_CSV = "Dados/base_clientes.csv"
+
+def limpar_numero_pedido(pedido_str):
+    """Remove 'PED', 'PED.', 'PED ' e espaços vazios, deixando apenas a numeração."""
+    return re.sub(r'(?i)PED[\.\s]*', '', str(pedido_str)).strip()
 
 def gerar_relatorio_execucao(sucessos, falhas):
     """Gera um arquivo de texto com o resumo dos envios."""
@@ -66,6 +71,9 @@ def processar_boletos():
     print("📖 Carregando base de clientes...")
     df_clientes = carregar_dados_clientes(ARQUIVO_CSV)
     
+    # Cria uma coluna com o pedido limpo para comparação segura
+    df_clientes['pedido_limpo'] = df_clientes['pedido'].astype(str).apply(limpar_numero_pedido)
+    
     arquivos_pdf = glob.glob(os.path.join(DIR_ENTRADA, "*.pdf"))
     if not arquivos_pdf:
         print("ℹ️ Nenhum boleto encontrado para processar.")
@@ -78,7 +86,8 @@ def processar_boletos():
 
     for filepath in arquivos_pdf:
         nome_arquivo = os.path.basename(filepath)
-        pedido = os.path.splitext(nome_arquivo)[0]
+        pedido_arquivo = os.path.splitext(nome_arquivo)[0]
+        pedido_limpo = limpar_numero_pedido(pedido_arquivo)
         
         # ==========================================
         # TRAVA DE SEGURANÇA CONTRA DUPLICIDADE
@@ -87,25 +96,26 @@ def processar_boletos():
         if os.path.exists(caminho_destino):
             msg_duplicado = "Boleto já processado anteriormente (encontrado na pasta de processados)."
             print(f"⏩ Ignorado: {nome_arquivo} já foi enviado.")
-            falhas.append({"pedido": pedido, "motivo": msg_duplicado})
+            falhas.append({"pedido": pedido_arquivo, "motivo": msg_duplicado})
             
-            # Remove o arquivo duplicado da pasta de entrada para não ficar atrapalhando
+            # Remove o arquivo duplicado da pasta de entrada
             os.remove(filepath)
             continue
         # ==========================================
         
-        cliente_info = df_clientes[df_clientes['pedido'] == pedido]
+        # Busca flexível no CSV (compara ambos limpos sem 'PED' ou 'PED.')
+        cliente_info = df_clientes[df_clientes['pedido_limpo'] == pedido_limpo]
         
         if cliente_info.empty:
-            msg = f"Pedido '{pedido}' não encontrado na base CSV."
+            msg = f"Pedido '{pedido_arquivo}' não encontrado na base CSV."
             print(f"⚠️ {msg}")
-            falhas.append({"pedido": pedido, "motivo": msg})
+            falhas.append({"pedido": pedido_arquivo, "motivo": msg})
             continue
             
         dados_cliente = cliente_info.iloc[0].to_dict()
         
         try:
-            # Envia o ticket pelo Freshdesk
+            # Envia o ticket pelo Freshservice
             ticket_id = criar_ticket_enviar_boleto(filepath, dados_cliente, EMAIL_CONFIG_ID)
             
             # Move o arquivo localmente
@@ -119,15 +129,15 @@ def processar_boletos():
                     print(f"⚠️ Erro ao mover no SharePoint ({nome_arquivo}): {sp_err}")
 
             sucessos.append({
-                "pedido": pedido,
+                "pedido": dados_cliente['pedido'],
                 "cliente": dados_cliente['nome cliente'],
                 "email": dados_cliente['email'],
                 "ticket_id": ticket_id
             })
         except Exception as e:
             msg_erro = str(e)
-            print(f"❌ Erro ao enviar pedido {pedido}: {msg_erro}")
-            falhas.append({"pedido": pedido, "motivo": msg_erro})
+            print(f"❌ Erro ao enviar pedido {pedido_arquivo}: {msg_erro}")
+            falhas.append({"pedido": pedido_arquivo, "motivo": msg_erro})
 
     # Gera o relatório final de execução
     gerar_relatorio_execucao(sucessos, falhas)
