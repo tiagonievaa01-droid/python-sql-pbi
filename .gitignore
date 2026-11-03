@@ -18,14 +18,12 @@ env/
 # ==========================================
 # DADOS SENSÍVEIS, BOLETOS E RELATÓRIOS
 # ==========================================
-Dados/
+Base de Dados/
 boletos_sap/
 boletos_processados/
 PDF/
 Saida/
 XML/
-XML./
-INTEGRACAO_PBI/
 
 # Extensões de arquivos de dados, relatórios e temporários
 *.csv

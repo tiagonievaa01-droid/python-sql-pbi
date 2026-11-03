@@ -21,7 +21,7 @@ except Exception:
 EMAIL_CONFIG_ID = 156000288508 
 DIR_ENTRADA = "boletos_sap"
 DIR_PROCESSADOS = "boletos_processados"
-ARQUIVO_CSV = "Dados/base_clientes.csv"
+ARQUIVO_CSV = "Base de Dados/base_clientes.csv"
 
 def limpar_numero_pedido(pedido_str):
     """Remove 'PED', 'PED.', 'PED ' e espaços vazios, deixando apenas a numeração."""
